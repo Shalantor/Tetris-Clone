@@ -14,7 +14,7 @@ TRACK =0
 MOVESIDEWAYSFREQ = 0.05
 MOVEDOWNFREQ = 0.05
 
-#margin from top 
+#margin from top
 TOPMARGIN = WINDOWHEIGHT-(BOARDHEIGHT*BOXSIZE)-5
 
 #set up colors
@@ -157,75 +157,28 @@ SHAPES = {'S':S_SHAPE_TEMPLATE,
           'O':O_SHAPE_TEMPLATE,
           'T':T_SHAPE_TEMPLATE}
 
+#Folder with songs
+SONG_FOLDER = 'songs/'
 
-def mixerStart():
-    randomtrack = ['1','2','3','4','5']
-    pygame.mixer.init()
-    track = 0
-    s1 = pygame.mixer.Sound('s1.ogg')
-    s2 = pygame.mixer.Sound('s2.ogg')
-    s3 = pygame.mixer.Sound('s3.ogg')
-    s4 = pygame.mixer.Sound('s4.ogg')
-    s5 = pygame.mixer.Sound('s5.ogg')
-    pygame.mixer.music.load('s'+ randomtrack[0] +'.ogg')
-    pygame.mixer.music.play(-1, 0.0)
-    return track,randomtrack
- 
-def mixer(track,randomtrack):
-    track = (track+1) % 5
-    pygame.mixer.music.load('s'+ randomtrack[track] +'.ogg')
-    pygame.mixer.music.play(-1, 0.0)
-    return track
+#Game and screen constants
+FPSCLOCK = pygame.time.Clock()
+DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH,WINDOWHEIGHT))
+BACKGROUND = pygame.image.load('background.png')
 
-def getHighScore():
-    #load previous highscore if exists
-    d = shelve.open('score.txt')
-    try:
-        highscore = d['highscore']
-    except:
-        highscore = 0
-    d.close()
-    return highscore
-
-def newHighScore(score,highscore):
-    d = shelve.open('score.txt')
-    if score > highscore:
-        d['highscore'] = score
-    d.close()
-
-def showVideo():
-    clock = pygame.time.Clock()
-    movie = pygame.movie.Movie('Intro.mpg')
-    movie_screen = pygame.Surface(movie.get_size()).convert()
-
-    movie.set_display(movie_screen)
-    movie.play()
-
-    playing = True
-    while playing and movie.get_busy():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                movie.stop()
-                playing = False
-        DISPLAYSURF.blit(movie_screen,(70,70))
-        pygame.display.update()
-        clock.tick(FPS)
-
+#main game loop
 def main():
-    global FPSCLOCK,DISPLAYSURF,BASICFONT,BIGFONT,GRIDSURF,WHERESURF,background,randomtrack
-    background = pygame.image.load('background.png')
+    #Set fonts, drawing surface and music mixer
+    global BASICFONT,BIGFONT
     pygame.init()
-    FPSCLOCK = pygame.time.Clock()
-    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH,WINDOWHEIGHT))
     BASICFONT = pygame.font.Font(None,40)
     BIGFONT = pygame.font.Font(None,100)
     pygame.display.set_caption('TetrisGK')
-    pygame.mixer.quit()
-    showVideo()
     pygame.mixer.init()
     DISPLAYSURF.fill(BLACK)
     showTextScreen('TetrisGK')
     track,randomtrack = mixerStart()
+
+    #Start game
     while True:
         score,highscore = runGame(track,randomtrack)
         newHighScore(score,highscore)
@@ -234,15 +187,24 @@ def main():
         pygame.mixer.init()
         track = mixer(track,randomtrack)
 
+#Game loop
 def runGame(track,randomtrack):
-    board = getBlankBoard()
+    board = getBoard()
+
+    #To measure moving frequency of pieces
+    #When the player presses the down button so that the piece falls faster
     lastMoveDownTime = time.time()
+    #Player moves the piece sideways
     lastMoveSidewaysTime = time.time()
+    #Piece falls on its own
     lastFallTime = time.time()
+
     movingDown = False #for knowing when to create new piece
     movingLeft = False
     movingRight = False
     score = 0
+
+    #Pieces fall faster the longer the game's duration is
     level,fallFreq = calculateLevelAndFallFreq(score)
     highscore = getHighScore()
     fallingPiece = getNewPiece()
@@ -250,14 +212,19 @@ def runGame(track,randomtrack):
     musicplaying = True
 
     while True:#game loop
+
         if fallingPiece == None: #we need to create a new piece
             fallingPiece = nextPiece
             nextPiece = getNewPiece()
-            lastFallTime = time.time() #reset time
-            if not isValidPosition(board,fallingPiece):#no more space , player has lost
+            lastFallTime = time.time() #reset fall time
+
+            #player has lost, because the piece was just created but already has no space on the board
+            if not isValidPosition(board,fallingPiece):
                 return score,highscore
         checkForQuit()
-        for event in pygame.event.get(): #check for keys pressed loop
+
+         #check for keys pressed loop
+        for event in pygame.event.get():
             if (event.type == KEYUP):
                 if(event.key == K_p): #Pause game
                     DISPLAYSURF.fill(BGCOLOR)
@@ -276,7 +243,6 @@ def runGame(track,randomtrack):
             elif (event.type == KEYDOWN):
                 #move sideways
                 if((event.key == K_LEFT or event.key == K_a) and isValidPosition(board,fallingPiece,adjX = -1)):
-                   #fallingPiece['x'] -= 1 for some reason i have to do that
                    movingRight = False
                    movingLeft = True
                    lastMoveSideWaysTime = time.time()
@@ -317,8 +283,8 @@ def runGame(track,randomtrack):
                             if (not isValidPosition(board,fallingPiece,adjY=i)):
                                 break
                         fallingPiece['y'] +=i-1
-                                
-        #block movement because of player pressing keys
+
+        #piece movement because of player pressing keys
         if((movingLeft or movingRight) and time.time() - lastMoveSidewaysTime >  MOVESIDEWAYSFREQ):
             if(movingLeft and isValidPosition(board,fallingPiece,adjX=-1)):
                fallingPiece['x'] -= 1
@@ -337,7 +303,8 @@ def runGame(track,randomtrack):
                  #piece landed , add it to board
                  addToBoard(board,fallingPiece)
                  score += removeCompleteLines(board)
-                 level,fallFreq = calculateLevelAndFallFreq(score)
+                 #Uncomment below line if you want to increase fall speed the higher the score is
+                 #level,fallFreq = calculateLevelAndFallFreq(score)
                  fallingPiece = None
             else:
                  #piece just moves down 1 block size
@@ -350,7 +317,7 @@ def runGame(track,randomtrack):
             drawBoard(board,fallingPiece)
         else:
             drawBoard(board,None)
-        DISPLAYSURF.blit(background,(BOARDWIDTH*BOXSIZE+5,0))
+        DISPLAYSURF.blit(BACKGROUND,(BOARDWIDTH*BOXSIZE+5,0))
         drawStatus(score,level,highscore)
         drawNextPiece(nextPiece)
         if fallingPiece != None:
@@ -358,10 +325,12 @@ def runGame(track,randomtrack):
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
+#Return surface object and rectangle for given text
 def makeTextObjs(text,font,color):
     surf = font.render(text,True,color)
     return surf,surf.get_rect()
 
+#End game
 def terminate():
     pygame.quit()
     sys.exit()
@@ -421,11 +390,11 @@ def addToBoard(board,piece):
             if SHAPES[piece['shape']][piece['rotation']][y][x] != EMPTY:
                 board[x + piece['x']][y + piece['y']] = piece['color']
 
-def getBlankBoard():
-    #create and return a new blank board data structure
+def getBoard():
+    #create and return a new  board data structure
     board = []
     for i in range(BOARDWIDTH):
-        board.append([BLANK]*BOARDHEIGHT)
+        board.append([EMPTY]*BOARDHEIGHT)
     return board
 
 def isOnBoard(x,y):
@@ -442,7 +411,7 @@ def isValidPosition(board,piece,adjX=0,adjY=0):
                 return False
             if board[x + piece['x'] + adjX][y + piece['y'] + adjY] != EMPTY:
                 return False
-    return True 
+    return True
 
 def isCompleteLine(board,y):
     #Return True if the line filled with boxes with no gaps
@@ -462,7 +431,7 @@ def removeCompleteLines(board):
             for pullDownY in range(y,0,-1):
                 for x in range(BOARDWIDTH):
                     board[x][pullDownY] = board[x][pullDownY-1]
-            #Set very top line to blank
+            #Set very top line to
             for x in range(BOARDWIDTH):
                 board[x][0] = EMPTY
             numLinesRemoved += 1
@@ -488,7 +457,7 @@ def drawBox(boxx,boxy,color,pixelx=None,pixely=None):
     if pixelx ==None and pixely == None:
         pixelx,pixely = convertToPixelCoords(boxx,boxy)
     pygame.draw.rect(DISPLAYSURF,COLORS[color],(pixelx+1,pixely+1,BOXSIZE-1,BOXSIZE-1))
-    pygame.draw.rect(DISPLAYSURF, LIGHTCOLORS[color], (pixelx + 1, pixely + 1, BOXSIZE - 4, BOXSIZE - 4))                
+    pygame.draw.rect(DISPLAYSURF, LIGHTCOLORS[color], (pixelx + 1, pixely + 1, BOXSIZE - 4, BOXSIZE - 4))
 
 def drawBoard(board,isPiece):
     #draw the border around the board
@@ -529,7 +498,7 @@ def drawPiece(piece,pixelx=None,pixely=None):
         for y in range(TEMPLATEHEIGHT):
             if shapeToDraw[y][x] != EMPTY:
                 drawBox(None, None, piece['color'], pixelx + (x * BOXSIZE), pixely + (y * BOXSIZE))
-                
+
 def drawNextPiece(piece):
     #draw the "next" text
     nextSurf = BASICFONT.render('Next:', True, TEXTCOLOR)
@@ -548,11 +517,11 @@ def drawgrid(isPiece,board):
     for y in range(BOARDHEIGHT):
         pygame.draw.line(GRIDSURF,GREY,(3,y*BOXSIZE-5),(BOARDWIDTH*BOXSIZE+3,y*BOXSIZE-5),1)
     for x in range(1,BOARDWIDTH):
-        pygame.draw.line(GRIDSURF,GREY,(x*BOXSIZE+2,0),(x*BOXSIZE+2,BOARDHEIGHT*BOXSIZE-5),1)       
+        pygame.draw.line(GRIDSURF,GREY,(x*BOXSIZE+2,0),(x*BOXSIZE+2,BOARDHEIGHT*BOXSIZE-5),1)
     GRIDSURF.set_alpha(30)
     DISPLAYSURF.blit(GRIDSURF,(0,0))
 
-def drawWherePieceGoes(piece,board,GRIDSURF):
+def drawWherePieceGoes(piece,board,surface):
     shapeToDraw = SHAPES[piece['shape']][piece['rotation']]
     for i in range(1,BOARDHEIGHT):
         if (not isValidPosition(board,piece,adjY=i)):
@@ -562,10 +531,40 @@ def drawWherePieceGoes(piece,board,GRIDSURF):
     pixelx, pixely = convertToPixelCoords(x, y)
     for xx in range(TEMPLATEWIDTH):
         for yy in range(TEMPLATEHEIGHT):
-            if shapeToDraw[yy][xx] != BLANK:
-                pygame.draw.rect(GRIDSURF,WHITE,((xx*BOXSIZE)+pixelx,(yy*BOXSIZE)+pixely,BOXSIZE,BOXSIZE))
+            if shapeToDraw[yy][xx] != EMPTY:
+                pygame.draw.rect(surface,WHITE,((xx*BOXSIZE)+pixelx,(yy*BOXSIZE)+pixely,BOXSIZE,BOXSIZE))
+
+#Initialize mixer and start playing first song
+def mixerStart():
+    randomtrack = ['1','2','3','4','5']
+    pygame.mixer.init()
+    pygame.mixer.music.load('songs/s1.ogg')
+    pygame.mixer.music.play(-1, 0.0)
+    return 0,randomtrack
+
+#Play the given track
+def mixer(track,randomtrack):
+    track = (track+1) % 5
+    pygame.mixer.music.load(SONG_FOLDER + 's'+ randomtrack[track] +'.ogg')
+    pygame.mixer.music.play(-1, 0.0)
+    return track
+
+#load previous highscore if exists
+def getHighScore():
+    d = shelve.open('save/score.txt')
+    try:
+        highscore = d['highscore']
+    except:
+        highscore = 0
+    d.close()
+    return highscore
+
+#Save new highscore
+def newHighScore(score,highscore):
+    d = shelve.open('save/score.txt')
+    if score > highscore:
+        d['highscore'] = score
+    d.close()
 
 if __name__ == '__main__':
     main()
-                   
-                      
