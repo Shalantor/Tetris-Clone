@@ -1,15 +1,15 @@
 # A Tetris clone written in Python 3.5, using Pygame version 1.9.2
 
 ## Controls:
-### Left Arrow: Move piece one block left.<br/>
-### Right Arrow: Move piece one block right.<br/>
-### Up Arrow or W: Change orientation of piece clockwise.<br/>
-### Q: Change orientationof piece counter-clockwise.<br/>
-### Down Arrow: Make piece fall faster.<br/>
-### Space: Make piece instantly fall to final destination marked with the grey color piece at the bottom.<br/>
-### N: Play next soundtrack<br/>
-### M: Mute/Unmute soundtrack<br/>
-### P: Pause/Unpause game<br/>
+* __Left Arrow:__ Move piece one block left.<br/>
+* __Right Arrow:__ Move piece one block right.<br/>
+* __Up Arrow or W:__ Change orientation of piece clockwise.<br/>
+* __Q:__ Change orientationof piece counter-clockwise.<br/>
+* __Down Arrow:__ Make piece fall faster.<br/>
+* __Space:__ Make piece instantly fall to final destination marked with the grey color piece at the bottom.<br/>
+* __N:__ Play next soundtrack<br/>
+* __M:__ Mute/Unmute soundtrack<br/>
+* __P:__ Pause/Unpause game<br/>
 
 ### Screenshots:
 
